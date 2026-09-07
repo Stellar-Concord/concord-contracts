@@ -14,4 +14,7 @@ pub enum Error {
     InvalidMilestoneAmount = 8,
     InvalidMilestoneStatus = 9,
     AmountOverflow = 10,
+    DisputeNotFound = 11,
+    NotDisputeParty = 12,
+    InvalidSplitPercentage = 13,
 }

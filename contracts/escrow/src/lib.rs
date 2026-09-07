@@ -8,7 +8,7 @@ mod test;
 
 use errors::Error;
 use soroban_sdk::{contract, contractimpl, panic_with_error, token, Address, Env, String, Vec};
-use types::{DataKey, Escrow, EscrowStatus, Milestone, MilestoneStatus};
+use types::{DataKey, Dispute, Escrow, EscrowStatus, Milestone, MilestoneStatus, Resolution};
 
 #[contract]
 pub struct EscrowContract;
@@ -129,11 +129,7 @@ impl EscrowContract {
         milestone.status = MilestoneStatus::Released;
         escrow.milestones.set(milestone_id, milestone);
 
-        let all_released = escrow
-            .milestones
-            .iter()
-            .all(|m| m.status == MilestoneStatus::Released);
-        if all_released {
+        if Self::all_milestones_settled(&escrow.milestones) {
             escrow.status = EscrowStatus::Completed;
         }
         Self::save_escrow(&env, &escrow);
@@ -152,9 +148,113 @@ impl EscrowContract {
         Self::save_escrow(&env, &escrow);
     }
 
+    /// Raises a dispute on a milestone that has not yet been released.
+    /// Authorized by either the client or the provider. Freezes only the
+    /// disputed milestone; other milestones are unaffected.
+    pub fn raise_dispute(
+        env: Env,
+        escrow_id: u64,
+        milestone_id: u32,
+        raised_by: Address,
+        reason: String,
+    ) {
+        let mut escrow = Self::load_escrow(&env, escrow_id);
+        if escrow.status != EscrowStatus::Funded && escrow.status != EscrowStatus::InProgress {
+            panic_with_error!(&env, Error::InvalidEscrowStatus);
+        }
+
+        raised_by.require_auth();
+        if raised_by != escrow.client && raised_by != escrow.provider {
+            panic_with_error!(&env, Error::NotDisputeParty);
+        }
+
+        let mut milestone = Self::get_milestone(&env, &escrow, milestone_id);
+        if milestone.status != MilestoneStatus::Pending
+            && milestone.status != MilestoneStatus::Submitted
+        {
+            panic_with_error!(&env, Error::InvalidMilestoneStatus);
+        }
+        milestone.status = MilestoneStatus::Disputed;
+        escrow.milestones.set(milestone_id, milestone);
+        Self::save_escrow(&env, &escrow);
+
+        Self::save_dispute(
+            &env,
+            &Dispute {
+                milestone_id,
+                raised_by,
+                reason,
+            },
+            escrow_id,
+        );
+    }
+
+    /// Resolves a disputed milestone, settling its funds according to
+    /// `resolution`. Authorized by the escrow's arbitrator.
+    pub fn resolve_dispute(env: Env, escrow_id: u64, milestone_id: u32, resolution: Resolution) {
+        let mut escrow = Self::load_escrow(&env, escrow_id);
+        escrow.arbitrator.require_auth();
+
+        let mut milestone = Self::get_milestone(&env, &escrow, milestone_id);
+        if milestone.status != MilestoneStatus::Disputed {
+            panic_with_error!(&env, Error::InvalidMilestoneStatus);
+        }
+        Self::load_dispute(&env, escrow_id, milestone_id);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        let contract_address = env.current_contract_address();
+        match &resolution {
+            Resolution::ReleaseToProvider => {
+                token_client.transfer(&contract_address, &escrow.provider, &milestone.amount);
+            }
+            Resolution::RefundToClient => {
+                token_client.transfer(&contract_address, &escrow.client, &milestone.amount);
+            }
+            Resolution::Split(provider_bps) => {
+                if *provider_bps > 10_000 {
+                    panic_with_error!(&env, Error::InvalidSplitPercentage);
+                }
+                let provider_amount = Self::apply_bps(&env, milestone.amount, *provider_bps);
+                let client_amount = milestone.amount - provider_amount;
+                if provider_amount > 0 {
+                    token_client.transfer(&contract_address, &escrow.provider, &provider_amount);
+                }
+                if client_amount > 0 {
+                    token_client.transfer(&contract_address, &escrow.client, &client_amount);
+                }
+            }
+        }
+
+        milestone.status = MilestoneStatus::Resolved;
+        escrow.milestones.set(milestone_id, milestone);
+
+        env.storage().persistent().set(
+            &DataKey::DisputeResolution(escrow_id, milestone_id),
+            &resolution,
+        );
+
+        if Self::all_milestones_settled(&escrow.milestones) {
+            escrow.status = EscrowStatus::Completed;
+        }
+        Self::save_escrow(&env, &escrow);
+    }
+
     /// Returns the current state of an escrow.
     pub fn get_escrow(env: Env, escrow_id: u64) -> Escrow {
         Self::load_escrow(&env, escrow_id)
+    }
+
+    /// Returns the dispute record for a milestone.
+    pub fn get_dispute(env: Env, escrow_id: u64, milestone_id: u32) -> Dispute {
+        Self::load_dispute(&env, escrow_id, milestone_id)
+    }
+
+    /// Returns the resolution chosen for a resolved dispute.
+    pub fn get_dispute_resolution(env: Env, escrow_id: u64, milestone_id: u32) -> Resolution {
+        env.storage()
+            .persistent()
+            .get(&DataKey::DisputeResolution(escrow_id, milestone_id))
+            .unwrap_or_else(|| panic_with_error!(&env, Error::DisputeNotFound))
     }
 
     fn next_escrow_id(env: &Env) -> u64 {
@@ -198,5 +298,32 @@ impl EscrowContract {
             };
         }
         total
+    }
+
+    fn all_milestones_settled(milestones: &Vec<Milestone>) -> bool {
+        milestones
+            .iter()
+            .all(|m| m.status == MilestoneStatus::Released || m.status == MilestoneStatus::Resolved)
+    }
+
+    fn apply_bps(env: &Env, amount: i128, bps: u32) -> i128 {
+        let scaled = match amount.checked_mul(bps as i128) {
+            Some(v) => v,
+            None => panic_with_error!(env, Error::AmountOverflow),
+        };
+        scaled / 10_000
+    }
+
+    fn load_dispute(env: &Env, escrow_id: u64, milestone_id: u32) -> Dispute {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Dispute(escrow_id, milestone_id))
+            .unwrap_or_else(|| panic_with_error!(env, Error::DisputeNotFound))
+    }
+
+    fn save_dispute(env: &Env, dispute: &Dispute, escrow_id: u64) {
+        env.storage()
+            .persistent()
+            .set(&DataKey::Dispute(escrow_id, dispute.milestone_id), dispute);
     }
 }
