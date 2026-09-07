@@ -6,6 +6,7 @@ mod dispute;
 mod escrow;
 mod events;
 mod milestone;
+mod property;
 
 use crate::{EscrowContract, EscrowContractClient};
 use soroban_sdk::{testutils::Address as _, token, Address, Env};
