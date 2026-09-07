@@ -3,7 +3,7 @@
 use crate::errors::Error;
 use crate::events::{DisputeRaised, DisputeResolved, EscrowCompleted};
 use crate::state;
-use crate::types::{DataKey, Dispute, EscrowStatus, MilestoneStatus, Resolution};
+use crate::types::{Dispute, EscrowStatus, MilestoneStatus, Resolution};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
 use soroban_sdk::{contractimpl, panic_with_error, token, Address, Env, String};
 
@@ -93,10 +93,7 @@ impl EscrowContract {
         milestone.status = MilestoneStatus::Resolved;
         escrow.milestones.set(milestone_id, milestone);
 
-        env.storage().persistent().set(
-            &DataKey::DisputeResolution(escrow_id, milestone_id),
-            &resolution,
-        );
+        state::save_dispute_resolution(&env, escrow_id, milestone_id, &resolution);
 
         let completed = state::all_milestones_settled(&escrow.milestones);
         if completed {
@@ -131,9 +128,6 @@ impl EscrowContract {
 
     /// Returns the resolution chosen for a resolved dispute.
     pub fn get_dispute_resolution(env: Env, escrow_id: u64, milestone_id: u32) -> Resolution {
-        env.storage()
-            .persistent()
-            .get(&DataKey::DisputeResolution(escrow_id, milestone_id))
-            .unwrap_or_else(|| panic_with_error!(&env, Error::DisputeNotFound))
+        state::load_dispute_resolution(&env, escrow_id, milestone_id)
     }
 }
