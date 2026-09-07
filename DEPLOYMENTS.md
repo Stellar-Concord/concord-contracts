@@ -7,7 +7,7 @@ Deployed 2026-09-07 for Phase 6 integration testing.
 | | |
 |---|---|
 | Escrow contract | `CCV6TXXCFDFC743XMQBRICV4HFMKRPDDCPUQFKOWVYZ3BNJEGEDQODSO` |
-| Wasm hash | `1f5fadd39264da9a782207b266a592da31b550836d2be2293108cec6fb0615e4` |
+| Wasm hash at deployment | `1f5fadd39264da9a782207b266a592da31b550836d2be2293108cec6fb0615e4` |
 | Test token (SAC over classic asset `CORD`) | `CCCXMQ2ZY4CPSDO3TX2AHIEEEJG6CV7QUJ237XERSGWF6BELZOYQ4L4O` |
 | Token issuer | `GDW3QNZSW2QKR5NJCW2GHXHMN6KDO3JRODROJ35JDP255BYLM73YI5YR` |
 | Network | Stellar Testnet (`Test SDF Network ; September 2015`) |
@@ -43,6 +43,14 @@ Running against a live RPC surfaced two real bugs in the indexer
 
 The frontend, pointed at this contract's ID, rendered escrow #0's real
 state correctly via the backend.
+
+Source has since been reorganized (splitting `lib.rs` into domain
+modules) without changing behavior — same exported functions, same wasm
+size, all tests unchanged — but rebuilding from current source now
+produces a *different* wasm hash than the one above, since file layout
+affects the compiled bytecode even when logic is identical. The deployed
+contract above is unaffected; redeploy only if you need the hash to
+match current source exactly.
 
 ### Reproducing
 
