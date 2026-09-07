@@ -6,8 +6,6 @@ use soroban_sdk::contracterror;
 pub enum Error {
     EscrowNotFound = 1,
     MilestoneNotFound = 2,
-    NotClient = 3,
-    NotProvider = 4,
     InvalidEscrowStatus = 5,
     NoMilestones = 6,
     MismatchedMilestoneInputs = 7,
@@ -17,4 +15,5 @@ pub enum Error {
     DisputeNotFound = 11,
     NotDisputeParty = 12,
     InvalidSplitPercentage = 13,
+    RolesMustBeDistinct = 14,
 }

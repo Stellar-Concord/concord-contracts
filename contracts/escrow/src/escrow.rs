@@ -22,6 +22,10 @@ impl EscrowContract {
     ) -> u64 {
         client.require_auth();
 
+        if client == provider || client == arbitrator || provider == arbitrator {
+            panic_with_error!(&env, Error::RolesMustBeDistinct);
+        }
+
         if milestone_descriptions.is_empty() {
             panic_with_error!(&env, Error::NoMilestones);
         }

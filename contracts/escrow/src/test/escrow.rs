@@ -131,3 +131,51 @@ fn test_no_milestones_rejected() {
         &amounts,
     );
 }
+
+#[test]
+#[should_panic]
+fn test_client_cannot_also_be_arbitrator() {
+    let s = setup();
+    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
+    let amounts = vec![&s.env, 50i128];
+    s.contract.initialize_escrow(
+        &s.client,
+        &s.provider,
+        &s.client,
+        &s.token,
+        &descriptions,
+        &amounts,
+    );
+}
+
+#[test]
+#[should_panic]
+fn test_provider_cannot_also_be_arbitrator() {
+    let s = setup();
+    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
+    let amounts = vec![&s.env, 50i128];
+    s.contract.initialize_escrow(
+        &s.client,
+        &s.provider,
+        &s.provider,
+        &s.token,
+        &descriptions,
+        &amounts,
+    );
+}
+
+#[test]
+#[should_panic]
+fn test_client_cannot_also_be_provider() {
+    let s = setup();
+    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
+    let amounts = vec![&s.env, 50i128];
+    s.contract.initialize_escrow(
+        &s.client,
+        &s.client,
+        &s.arbitrator,
+        &s.token,
+        &descriptions,
+        &amounts,
+    );
+}
