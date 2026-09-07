@@ -70,30 +70,26 @@ impl EscrowContract {
         }
         state::load_dispute(&env, escrow_id, milestone_id);
 
-        let token_client = token::Client::new(&env, &escrow.token);
-        let contract_address = env.current_contract_address();
-        match &resolution {
-            Resolution::ReleaseToProvider => {
-                token_client.transfer(&contract_address, &escrow.provider, &milestone.amount);
-            }
-            Resolution::RefundToClient => {
-                token_client.transfer(&contract_address, &escrow.client, &milestone.amount);
-            }
+        // Validate the resolution and work out who gets paid what before
+        // touching storage or calling out to the token contract.
+        let amount = milestone.amount;
+        let (provider_amount, client_amount): (i128, i128) = match &resolution {
+            Resolution::ReleaseToProvider => (amount, 0),
+            Resolution::RefundToClient => (0, amount),
             Resolution::Split(provider_bps) => {
                 if *provider_bps > 10_000 {
                     panic_with_error!(&env, Error::InvalidSplitPercentage);
                 }
-                let provider_amount = state::apply_bps(&env, milestone.amount, *provider_bps);
-                let client_amount = milestone.amount - provider_amount;
-                if provider_amount > 0 {
-                    token_client.transfer(&contract_address, &escrow.provider, &provider_amount);
-                }
-                if client_amount > 0 {
-                    token_client.transfer(&contract_address, &escrow.client, &client_amount);
-                }
+                let provider_amount = state::apply_bps(&env, amount, *provider_bps);
+                (provider_amount, amount - provider_amount)
             }
-        }
+        };
 
+        // Update state before the external token calls: the token address
+        // is caller-supplied and could belong to a contract that calls back
+        // into us during `transfer`. Reading this milestone as `Resolved`
+        // already, rather than still `Disputed`, is what stops a reentrant
+        // call from being settled twice.
         milestone.status = MilestoneStatus::Resolved;
         escrow.milestones.set(milestone_id, milestone);
 
@@ -107,6 +103,15 @@ impl EscrowContract {
             escrow.status = EscrowStatus::Completed;
         }
         state::save_escrow(&env, &escrow);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        let contract_address = env.current_contract_address();
+        if provider_amount > 0 {
+            token_client.transfer(&contract_address, &escrow.provider, &provider_amount);
+        }
+        if client_amount > 0 {
+            token_client.transfer(&contract_address, &escrow.client, &client_amount);
+        }
 
         DisputeResolved {
             escrow_id,

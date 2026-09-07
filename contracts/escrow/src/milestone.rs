@@ -52,13 +52,11 @@ impl EscrowContract {
             panic_with_error!(&env, Error::InvalidMilestoneStatus);
         }
 
-        let token_client = token::Client::new(&env, &escrow.token);
-        token_client.transfer(
-            &env.current_contract_address(),
-            &escrow.provider,
-            &milestone.amount,
-        );
-
+        // Update state before the external token call: the token address is
+        // caller-supplied and could belong to a contract that calls back
+        // into us during `transfer`. Reading this milestone as `Released`
+        // already, rather than still `Submitted`, is what stops a reentrant
+        // call from being paid twice for it.
         let amount = milestone.amount;
         milestone.status = MilestoneStatus::Released;
         escrow.milestones.set(milestone_id, milestone);
@@ -68,6 +66,9 @@ impl EscrowContract {
             escrow.status = EscrowStatus::Completed;
         }
         state::save_escrow(&env, &escrow);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        token_client.transfer(&env.current_contract_address(), &escrow.provider, &amount);
 
         MilestoneApproved {
             escrow_id,

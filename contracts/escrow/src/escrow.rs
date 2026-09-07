@@ -79,11 +79,16 @@ impl EscrowContract {
         escrow.client.require_auth();
 
         let total = state::total_amount(&env, &escrow.milestones);
-        let token_client = token::Client::new(&env, &escrow.token);
-        token_client.transfer(&escrow.client, env.current_contract_address(), &total);
 
+        // Update state before the external token call: the token address is
+        // caller-supplied and could belong to a contract that calls back
+        // into us during `transfer`, so we don't want to still look
+        // `Created` (fundable again) if that happens.
         escrow.status = EscrowStatus::Funded;
         state::save_escrow(&env, &escrow);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        token_client.transfer(&escrow.client, env.current_contract_address(), &total);
 
         EscrowFunded { escrow_id, total }.publish(&env);
     }
