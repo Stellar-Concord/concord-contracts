@@ -1,12 +1,17 @@
 #![no_std]
 
 mod errors;
+mod events;
 mod types;
 
 #[cfg(test)]
 mod test;
 
 use errors::Error;
+use events::{
+    DisputeRaised, DisputeResolved, EscrowCancelled, EscrowCompleted, EscrowCreated, EscrowFunded,
+    MilestoneApproved, MilestoneSubmitted,
+};
 use soroban_sdk::{contract, contractimpl, panic_with_error, token, Address, Env, String, Vec};
 use types::{DataKey, Dispute, Escrow, EscrowStatus, Milestone, MilestoneStatus, Resolution};
 
@@ -61,6 +66,15 @@ impl EscrowContract {
         };
         Self::save_escrow(&env, &escrow);
 
+        EscrowCreated {
+            escrow_id,
+            client: escrow.client.clone(),
+            provider: escrow.provider.clone(),
+            arbitrator: escrow.arbitrator.clone(),
+            token: escrow.token.clone(),
+        }
+        .publish(&env);
+
         escrow_id
     }
 
@@ -80,6 +94,8 @@ impl EscrowContract {
 
         escrow.status = EscrowStatus::Funded;
         Self::save_escrow(&env, &escrow);
+
+        EscrowFunded { escrow_id, total }.publish(&env);
     }
 
     /// Provider marks a milestone as delivered. Authorized by the provider.
@@ -102,6 +118,12 @@ impl EscrowContract {
             escrow.status = EscrowStatus::InProgress;
         }
         Self::save_escrow(&env, &escrow);
+
+        MilestoneSubmitted {
+            escrow_id,
+            milestone_id,
+        }
+        .publish(&env);
     }
 
     /// Client approves a submitted milestone, releasing its funds to the
@@ -126,13 +148,25 @@ impl EscrowContract {
             &milestone.amount,
         );
 
+        let amount = milestone.amount;
         milestone.status = MilestoneStatus::Released;
         escrow.milestones.set(milestone_id, milestone);
 
-        if Self::all_milestones_settled(&escrow.milestones) {
+        let completed = Self::all_milestones_settled(&escrow.milestones);
+        if completed {
             escrow.status = EscrowStatus::Completed;
         }
         Self::save_escrow(&env, &escrow);
+
+        MilestoneApproved {
+            escrow_id,
+            milestone_id,
+            amount,
+        }
+        .publish(&env);
+        if completed {
+            EscrowCompleted { escrow_id }.publish(&env);
+        }
     }
 
     /// Cancels an escrow before it has been funded. Authorized by the client.
@@ -146,6 +180,8 @@ impl EscrowContract {
 
         escrow.status = EscrowStatus::Cancelled;
         Self::save_escrow(&env, &escrow);
+
+        EscrowCancelled { escrow_id }.publish(&env);
     }
 
     /// Raises a dispute on a milestone that has not yet been released.
@@ -182,11 +218,19 @@ impl EscrowContract {
             &env,
             &Dispute {
                 milestone_id,
-                raised_by,
-                reason,
+                raised_by: raised_by.clone(),
+                reason: reason.clone(),
             },
             escrow_id,
         );
+
+        DisputeRaised {
+            escrow_id,
+            milestone_id,
+            raised_by,
+            reason,
+        }
+        .publish(&env);
     }
 
     /// Resolves a disputed milestone, settling its funds according to
@@ -233,10 +277,21 @@ impl EscrowContract {
             &resolution,
         );
 
-        if Self::all_milestones_settled(&escrow.milestones) {
+        let completed = Self::all_milestones_settled(&escrow.milestones);
+        if completed {
             escrow.status = EscrowStatus::Completed;
         }
         Self::save_escrow(&env, &escrow);
+
+        DisputeResolved {
+            escrow_id,
+            milestone_id,
+            resolution,
+        }
+        .publish(&env);
+        if completed {
+            EscrowCompleted { escrow_id }.publish(&env);
+        }
     }
 
     /// Returns the current state of an escrow.
