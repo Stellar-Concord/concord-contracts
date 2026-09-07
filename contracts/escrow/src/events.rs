@@ -1,5 +1,5 @@
-use crate::types::Resolution;
-use soroban_sdk::{contractevent, Address, String};
+use crate::types::{Milestone, Resolution};
+use soroban_sdk::{contractevent, Address, String, Vec};
 
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,6 +10,7 @@ pub struct EscrowCreated {
     pub provider: Address,
     pub arbitrator: Address,
     pub token: Address,
+    pub milestones: Vec<Milestone>,
 }
 
 #[contractevent]

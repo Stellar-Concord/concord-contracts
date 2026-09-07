@@ -72,6 +72,7 @@ impl EscrowContract {
             provider: escrow.provider.clone(),
             arbitrator: escrow.arbitrator.clone(),
             token: escrow.token.clone(),
+            milestones: escrow.milestones.clone(),
         }
         .publish(&env);
 
