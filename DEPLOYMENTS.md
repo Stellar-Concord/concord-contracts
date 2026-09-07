@@ -44,13 +44,26 @@ Running against a live RPC surfaced two real bugs in the indexer
 The frontend, pointed at this contract's ID, rendered escrow #0's real
 state correctly via the backend.
 
-Source has since been reorganized (splitting `lib.rs` into domain
-modules) without changing behavior — same exported functions, same wasm
-size, all tests unchanged — but rebuilding from current source now
-produces a *different* wasm hash than the one above, since file layout
-affects the compiled bytecode even when logic is identical. The deployed
-contract above is unaffected; redeploy only if you need the hash to
-match current source exactly.
+Source has since diverged from what's deployed above — first a pure
+reorganization (splitting `lib.rs` into domain modules, no behavior
+change), then several real hardening changes on top:
+
+- State is now updated before calling out to the (caller-supplied)
+  token contract in `fund_escrow`/`approve_milestone`/`resolve_dispute`,
+  closing a reentrancy path a malicious token could otherwise use to
+  get paid twice for the same milestone.
+- Every state write now extends the entry's and the contract
+  instance's TTL, so a long-idle escrow (or a quiet contract with no
+  new escrows) doesn't risk archival.
+- `initialize_escrow` now rejects overlapping client/provider/arbitrator
+  addresses — previously an arbitrator could also be the client and
+  resolve their own dispute in their own favor.
+
+None of this changes the exported function signatures (still the same
+10 functions), but it **does** change behavior: the escrow deployed
+above predates the reentrancy fix, TTL extension, and role-distinctness
+check. Redeploy from current source before relying on those in
+production.
 
 ### Reproducing
 
