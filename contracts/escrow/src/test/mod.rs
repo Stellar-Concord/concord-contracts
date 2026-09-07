@@ -1,6 +1,7 @@
 //! Shared test fixtures. Cases are split by domain, mirroring
 //! `escrow.rs` / `milestone.rs` / `dispute.rs`.
 
+mod auth;
 mod dispute;
 mod escrow;
 mod events;
