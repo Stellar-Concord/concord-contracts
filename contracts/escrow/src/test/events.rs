@@ -18,7 +18,7 @@ fn test_events_are_published_on_state_transitions() {
     s.contract.fund_escrow(&escrow_id);
     assert_eq!(s.env.events().all().events().len(), 2);
 
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     assert_eq!(s.env.events().all().events().len(), 1);
 
     // approve_milestone triggers a token "transfer" event, MilestoneApproved,

@@ -92,7 +92,7 @@ fn test_mutual_cancel_rejected_after_completion() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     s.contract.approve_milestone(&escrow_id, &0);
 
     s.contract.mutual_cancel_escrow(&escrow_id);
@@ -135,7 +135,7 @@ fn test_mutual_cancel_refunds_only_unreleased_portion() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     s.contract.approve_milestone(&escrow_id, &0);
 
     let client_balance_before = s.token_client.balance(&s.client);
@@ -271,5 +271,5 @@ fn test_cannot_submit_after_mutual_cancellation() {
     s.contract.fund_escrow(&escrow_id);
     s.contract.mutual_cancel_escrow(&escrow_id);
 
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 }

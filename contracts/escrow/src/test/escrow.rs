@@ -27,7 +27,7 @@ fn test_full_escrow_lifecycle() {
     let escrow = s.contract.get_escrow(&escrow_id);
     assert_eq!(escrow.status, EscrowStatus::Funded);
 
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     let escrow = s.contract.get_escrow(&escrow_id);
     assert_eq!(escrow.status, EscrowStatus::InProgress);
     assert_eq!(
@@ -45,7 +45,7 @@ fn test_full_escrow_lifecycle() {
         MilestoneStatus::Released
     );
 
-    s.contract.submit_milestone(&escrow_id, &1);
+    super::submit(&s, escrow_id, 1);
     s.contract.approve_milestone(&escrow_id, &1);
 
     assert_eq!(s.token_client.balance(&s.provider), 400);

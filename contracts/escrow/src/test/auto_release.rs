@@ -19,7 +19,7 @@ fn setup_submitted_milestone(s: &TestSetup) -> u64 {
         &REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(s, escrow_id, 0);
     escrow_id
 }
 
@@ -140,7 +140,7 @@ fn test_auto_release_leaves_other_milestones_unaffected() {
         &REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 
     let submitted_at = s.env.ledger().timestamp();
     s.env
@@ -157,7 +157,7 @@ fn test_auto_release_leaves_other_milestones_unaffected() {
     );
 
     // The untouched milestone still proceeds normally afterward.
-    s.contract.submit_milestone(&escrow_id, &1);
+    super::submit(&s, escrow_id, 1);
     s.contract.approve_milestone(&escrow_id, &1);
     assert_eq!(s.token_client.balance(&s.provider), 300);
     let escrow = s.contract.get_escrow(&escrow_id);

@@ -1,4 +1,10 @@
-use soroban_sdk::{contracttype, Address, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
+
+/// Cap on any off-chain reference URI stored on-chain (milestone evidence,
+/// escrow metadata). These are pointers, not payloads -- content lives off
+/// -chain and is referenced by URI + hash, so there's no legitimate reason
+/// for the URI itself to be long.
+pub(crate) const MAX_URI_LEN: u32 = 256;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,6 +81,16 @@ pub struct Milestone {
     /// network needs to represent, so it doubles as "not yet submitted"
     /// without needing an `Option`.
     pub submitted_at: u64,
+    /// Off-chain proof-of-delivery URI (e.g. an IPFS CID or HTTPS URL),
+    /// set once by `submit_milestone` and never changed again. Empty until
+    /// then. The content itself is never stored on-chain -- only this
+    /// reference and its hash.
+    pub evidence_uri: String,
+    /// Hash of the content at `evidence_uri`, so a client or arbitrator can
+    /// verify what they're looking at off-chain matches what the provider
+    /// actually submitted at the time. All-zero until `submit_milestone`
+    /// sets it alongside `evidence_uri`.
+    pub evidence_hash: BytesN<32>,
 }
 
 #[contracttype]

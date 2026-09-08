@@ -5,7 +5,7 @@
 use crate::state;
 use crate::types::{Milestone, MilestoneStatus};
 use proptest::prelude::*;
-use soroban_sdk::{Env, String, Vec};
+use soroban_sdk::{BytesN, Env, String, Vec};
 
 /// Comfortably covers any realistic token amount (even at 18 decimals with
 /// a huge total supply) while staying far enough under `i128::MAX / 10_000`
@@ -93,6 +93,8 @@ proptest! {
                 status: MilestoneStatus::Pending,
                 deadline: 0,
                 submitted_at: 0,
+                evidence_uri: String::from_str(&env, ""),
+                evidence_hash: BytesN::from_array(&env, &[0u8; 32]),
             });
         }
 
@@ -123,6 +125,8 @@ fn total_amount_overflow_is_caught_not_wrapped() {
             status: MilestoneStatus::Pending,
             deadline: 0,
             submitted_at: 0,
+            evidence_uri: String::from_str(&env, ""),
+            evidence_hash: BytesN::from_array(&env, &[0u8; 32]),
         });
     }
     state::total_amount(&env, &milestones);

@@ -83,6 +83,8 @@ fn test_submit_milestone_requires_provider_signature() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
+    let evidence_uri = String::from_str(&s.env, "ipfs://evidence");
+    let evidence_hash = super::default_evidence_hash(&s.env);
 
     // The client, not the provider, signs this attempt.
     s.contract
@@ -91,11 +93,11 @@ fn test_submit_milestone_requires_provider_signature() {
             invoke: &MockAuthInvoke {
                 contract: &s.contract.address,
                 fn_name: "submit_milestone",
-                args: (escrow_id, 0u32).into_val(&s.env),
+                args: (escrow_id, 0u32, &evidence_uri, &evidence_hash).into_val(&s.env),
                 sub_invokes: &[],
             },
         }])
-        .submit_milestone(&escrow_id, &0);
+        .submit_milestone(&escrow_id, &0, &evidence_uri, &evidence_hash);
 }
 
 #[test]
@@ -111,7 +113,7 @@ fn test_approve_milestone_requires_client_signature() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 
     // The provider signs, hoping to approve (and get paid for) their own
     // milestone.

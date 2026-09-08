@@ -5,16 +5,30 @@ use crate::events::{
     EscrowCompleted, MilestoneApproved, MilestoneAutoReleased, MilestoneExpired, MilestoneSubmitted,
 };
 use crate::state;
-use crate::types::{EscrowStatus, MilestoneStatus};
+use crate::types::{EscrowStatus, MilestoneStatus, MAX_URI_LEN};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
-use soroban_sdk::{contractimpl, panic_with_error, token, Env};
+use soroban_sdk::{contractimpl, panic_with_error, token, BytesN, Env, String};
 
 #[contractimpl]
 impl EscrowContract {
-    /// Provider marks a milestone as delivered. Authorized by the provider.
-    /// Rejected once that milestone's own deadline has passed -- see
-    /// `expire_milestone` for what happens to a late milestone instead.
-    pub fn submit_milestone(env: Env, escrow_id: u64, milestone_id: u32) {
+    /// Provider marks a milestone as delivered, attaching a proof-of
+    /// -delivery reference. Authorized by the provider. Rejected once that
+    /// milestone's own deadline has passed -- see `expire_milestone` for
+    /// what happens to a late milestone instead.
+    ///
+    /// `evidence_uri` and `evidence_hash` point at off-chain content (e.g.
+    /// an IPFS CID or HTTPS URL, and a hash of what's there) rather than
+    /// storing the evidence itself on-chain. Required and immutable: once
+    /// set here they're never changed again, since this function only ever
+    /// runs once per milestone (it requires `Pending`, and nothing moves a
+    /// milestone back to `Pending` afterward).
+    pub fn submit_milestone(
+        env: Env,
+        escrow_id: u64,
+        milestone_id: u32,
+        evidence_uri: String,
+        evidence_hash: BytesN<32>,
+    ) {
         let mut escrow = state::load_escrow(&env, escrow_id);
         if escrow.status != EscrowStatus::Funded && escrow.status != EscrowStatus::InProgress {
             panic_with_error!(&env, Error::InvalidEscrowStatus);
@@ -33,8 +47,13 @@ impl EscrowContract {
         if env.ledger().timestamp() > milestone.deadline {
             panic_with_error!(&env, Error::MilestoneDeadlinePassed);
         }
+        if evidence_uri.is_empty() || evidence_uri.len() > MAX_URI_LEN {
+            panic_with_error!(&env, Error::InvalidUri);
+        }
         milestone.status = MilestoneStatus::Submitted;
         milestone.submitted_at = env.ledger().timestamp();
+        milestone.evidence_uri = evidence_uri.clone();
+        milestone.evidence_hash = evidence_hash.clone();
         escrow.milestones.set(milestone_id, milestone);
 
         if escrow.status == EscrowStatus::Funded {
@@ -45,6 +64,8 @@ impl EscrowContract {
         MilestoneSubmitted {
             escrow_id,
             milestone_id,
+            evidence_uri,
+            evidence_hash,
         }
         .publish(&env);
     }

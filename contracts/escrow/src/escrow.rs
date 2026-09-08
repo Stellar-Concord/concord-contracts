@@ -5,7 +5,7 @@ use crate::events::{EscrowCancelled, EscrowCreated, EscrowFunded, EscrowMutually
 use crate::state;
 use crate::types::{Escrow, EscrowStatus, Milestone, MilestoneInput, MilestoneStatus};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
-use soroban_sdk::{contractimpl, panic_with_error, token, Address, Env, Vec};
+use soroban_sdk::{contractimpl, panic_with_error, token, Address, BytesN, Env, String, Vec};
 
 #[contractimpl]
 impl EscrowContract {
@@ -63,6 +63,8 @@ impl EscrowContract {
                 status: MilestoneStatus::Pending,
                 deadline: input.deadline,
                 submitted_at: 0,
+                evidence_uri: String::from_str(&env, ""),
+                evidence_hash: BytesN::from_array(&env, &[0u8; 32]),
             });
         }
 

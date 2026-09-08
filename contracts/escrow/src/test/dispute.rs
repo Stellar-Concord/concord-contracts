@@ -96,7 +96,7 @@ fn test_dispute_leaves_other_milestones_unaffected() {
         &String::from_str(&s.env, "Not delivered as scoped"),
     );
 
-    s.contract.submit_milestone(&escrow_id, &1);
+    super::submit(&s, escrow_id, 1);
     s.contract.approve_milestone(&escrow_id, &1);
     assert_eq!(s.token_client.balance(&s.provider), 200);
 
@@ -143,7 +143,7 @@ fn test_cannot_dispute_released_milestone() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     s.contract.approve_milestone(&escrow_id, &0);
 
     s.contract.raise_dispute(

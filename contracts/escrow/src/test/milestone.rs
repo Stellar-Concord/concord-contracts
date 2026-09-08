@@ -31,5 +31,5 @@ fn test_milestone_not_found() {
     );
 
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &5);
+    super::submit(&s, escrow_id, 5);
 }

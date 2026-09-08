@@ -7,13 +7,14 @@ mod deadline;
 mod dispute;
 mod escrow;
 mod events;
+mod evidence;
 mod milestone;
 mod mutual_cancel;
 mod property;
 
 use crate::types::MilestoneInput;
 use crate::{EscrowContract, EscrowContractClient};
-use soroban_sdk::{testutils::Address as _, token, Address, Env, String, Vec};
+use soroban_sdk::{testutils::Address as _, token, Address, BytesN, Env, String, Vec};
 
 fn create_token<'a>(
     env: &Env,
@@ -94,4 +95,20 @@ fn milestones(env: &Env, items: &[(&str, i128)]) -> Vec<MilestoneInput> {
         });
     }
     v
+}
+
+/// A placeholder evidence hash for tests that don't care what it is.
+fn default_evidence_hash(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[7u8; 32])
+}
+
+/// Submits a milestone with placeholder evidence, for tests exercising
+/// something other than the evidence fields themselves.
+fn submit(s: &TestSetup, escrow_id: u64, milestone_id: u32) {
+    s.contract.submit_milestone(
+        &escrow_id,
+        &milestone_id,
+        &String::from_str(&s.env, "ipfs://evidence"),
+        &default_evidence_hash(&s.env),
+    );
 }

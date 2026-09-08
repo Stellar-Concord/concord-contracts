@@ -92,7 +92,7 @@ fn test_submit_exactly_at_deadline_succeeds() {
     s.contract.fund_escrow(&escrow_id);
 
     s.env.ledger().set_timestamp(2_000);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 
     let escrow = s.contract.get_escrow(&escrow_id);
     assert_eq!(
@@ -117,7 +117,7 @@ fn test_reject_submission_after_deadline() {
     s.contract.fund_escrow(&escrow_id);
 
     s.env.ledger().set_timestamp(2_001);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 }
 
 #[test]
@@ -179,7 +179,7 @@ fn test_reject_expiring_submitted_milestone() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
 
     s.env.ledger().set_timestamp(2_001);
     s.contract.expire_milestone(&escrow_id, &0);
@@ -199,7 +199,7 @@ fn test_reject_expiring_released_milestone() {
         &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
-    s.contract.submit_milestone(&escrow_id, &0);
+    super::submit(&s, escrow_id, 0);
     s.contract.approve_milestone(&escrow_id, &0);
 
     s.env.ledger().set_timestamp(2_001);
