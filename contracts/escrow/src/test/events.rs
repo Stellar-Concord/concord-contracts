@@ -11,6 +11,7 @@ fn test_events_are_published_on_state_transitions() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     assert_eq!(s.env.events().all().events().len(), 1);
 

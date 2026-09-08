@@ -18,6 +18,7 @@ fn test_mutual_cancel_requires_both_signatures_missing_provider() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -46,6 +47,7 @@ fn test_mutual_cancel_requires_both_signatures_missing_client() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -74,6 +76,7 @@ fn test_mutual_cancel_rejected_before_funding() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.mutual_cancel_escrow(&escrow_id);
@@ -90,6 +93,7 @@ fn test_mutual_cancel_rejected_after_completion() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -108,6 +112,7 @@ fn test_mutual_cancel_refunds_full_amount_when_untouched() {
         &s.token,
         &milestones(&s.env, &[("A", 100i128), ("B", 200i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     let client_balance_before = s.token_client.balance(&s.client);
@@ -133,6 +138,7 @@ fn test_mutual_cancel_refunds_only_unreleased_portion() {
         &s.token,
         &milestones(&s.env, &[("A", 100i128), ("B", 200i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -169,6 +175,7 @@ fn test_mutual_cancel_includes_expired_milestone() {
         &s.token,
         &inputs,
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -194,6 +201,7 @@ fn test_mutual_cancel_blocked_by_open_dispute() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
@@ -216,6 +224,7 @@ fn test_mutual_cancel_allowed_after_dispute_resolved() {
         &s.token,
         &milestones(&s.env, &[("A", 100i128), ("B", 200i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
@@ -248,6 +257,7 @@ fn test_mutual_cancel_emits_event() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -267,6 +277,7 @@ fn test_cannot_submit_after_mutual_cancellation() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.mutual_cancel_escrow(&escrow_id);

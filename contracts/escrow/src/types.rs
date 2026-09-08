@@ -5,6 +5,9 @@ use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
 /// -chain and is referenced by URI + hash, so there's no legitimate reason
 /// for the URI itself to be long.
 pub(crate) const MAX_URI_LEN: u32 = 256;
+/// Cap on an escrow's optional `title`. Shorter than `MAX_URI_LEN` since a
+/// title is a label, not a reference.
+pub(crate) const MAX_TITLE_LEN: u32 = 128;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -68,6 +71,21 @@ pub struct MilestoneInput {
     pub deadline: u64,
 }
 
+/// Optional off-chain description for an escrow, supplied once at creation.
+/// Every field may be left empty/zeroed to omit metadata entirely -- unlike
+/// milestone evidence, this is descriptive labeling that nothing in the
+/// arbitration story depends on, so there's no reason to require it.
+/// Bundled into one struct (mirroring `MilestoneInput`) rather than three
+/// more positional arguments on `initialize_escrow`, which was already
+/// accumulating enough of those.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EscrowMetadata {
+    pub title: String,
+    pub metadata_uri: String,
+    pub metadata_hash: BytesN<32>,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Milestone {
@@ -109,6 +127,17 @@ pub struct Escrow {
     /// `initialize_escrow`'s docs for why this lives here rather than as a
     /// contract-wide constant or a per-milestone field.
     pub review_period: u64,
+    /// Ledger timestamp `initialize_escrow` was called at. Immutable --
+    /// nothing ever writes this again after creation.
+    pub created_at: u64,
+    /// Optional human-readable label. Empty if omitted at creation.
+    pub title: String,
+    /// Optional off-chain description URI. Empty if omitted at creation --
+    /// see `EscrowMetadata`.
+    pub metadata_uri: String,
+    /// Hash of the content at `metadata_uri`. All-zero if `metadata_uri` is
+    /// empty.
+    pub metadata_hash: BytesN<32>,
 }
 
 #[contracttype]

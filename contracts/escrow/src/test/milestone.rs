@@ -11,6 +11,7 @@ fn test_cannot_approve_without_submit() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -28,6 +29,7 @@ fn test_milestone_not_found() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.fund_escrow(&escrow_id);

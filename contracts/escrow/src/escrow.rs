@@ -1,9 +1,20 @@
 //! Escrow lifecycle: creation, funding, and cancellation.
 
+// `initialize_escrow` takes 4 identity addresses (client/provider/
+// arbitrator/token) plus milestones/review_period/metadata -- each already
+// its own meaningful unit (the four addresses don't share a natural
+// grouping the way milestone fields or metadata fields do), so there's no
+// further bundling that wouldn't just trade this for a different kind of
+// indirection.
+#![allow(clippy::too_many_arguments)]
+
 use crate::errors::Error;
 use crate::events::{EscrowCancelled, EscrowCreated, EscrowFunded, EscrowMutuallyCancelled};
 use crate::state;
-use crate::types::{Escrow, EscrowStatus, Milestone, MilestoneInput, MilestoneStatus};
+use crate::types::{
+    Escrow, EscrowMetadata, EscrowStatus, Milestone, MilestoneInput, MilestoneStatus,
+    MAX_TITLE_LEN, MAX_URI_LEN,
+};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
 use soroban_sdk::{contractimpl, panic_with_error, token, Address, BytesN, Env, String, Vec};
 
@@ -25,6 +36,12 @@ impl EscrowContract {
     /// period would let a milestone become auto-releasable in the same
     /// instant it's submitted, defeating the point of giving the client a
     /// review window at all.
+    ///
+    /// `metadata` is an optional off-chain description (title, a URI, and a
+    /// hash of what's there) -- see `EscrowMetadata`. Leave every field
+    /// empty/zeroed to omit it; nothing here requires it. Immutable once
+    /// set, same as milestone evidence: nothing ever writes these fields
+    /// again after creation.
     pub fn initialize_escrow(
         env: Env,
         client: Address,
@@ -33,6 +50,7 @@ impl EscrowContract {
         token: Address,
         milestones: Vec<MilestoneInput>,
         review_period: u64,
+        metadata: EscrowMetadata,
     ) -> u64 {
         client.require_auth();
 
@@ -45,6 +63,12 @@ impl EscrowContract {
         }
         if review_period == 0 {
             panic_with_error!(&env, Error::InvalidReviewPeriod);
+        }
+        if metadata.title.len() > MAX_TITLE_LEN {
+            panic_with_error!(&env, Error::InvalidTitle);
+        }
+        if metadata.metadata_uri.len() > MAX_URI_LEN {
+            panic_with_error!(&env, Error::InvalidUri);
         }
 
         let now = env.ledger().timestamp();
@@ -78,6 +102,10 @@ impl EscrowContract {
             milestones: built_milestones,
             status: EscrowStatus::Created,
             review_period,
+            created_at: now,
+            title: metadata.title,
+            metadata_uri: metadata.metadata_uri,
+            metadata_hash: metadata.metadata_hash,
         };
         state::save_escrow(&env, &escrow);
 
@@ -88,6 +116,10 @@ impl EscrowContract {
             arbitrator: escrow.arbitrator.clone(),
             token: escrow.token.clone(),
             milestones: escrow.milestones.clone(),
+            created_at: escrow.created_at,
+            title: escrow.title.clone(),
+            metadata_uri: escrow.metadata_uri.clone(),
+            metadata_hash: escrow.metadata_hash.clone(),
         }
         .publish(&env);
 

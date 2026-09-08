@@ -8,11 +8,12 @@ mod dispute;
 mod escrow;
 mod events;
 mod evidence;
+mod metadata;
 mod milestone;
 mod mutual_cancel;
 mod property;
 
-use crate::types::MilestoneInput;
+use crate::types::{EscrowMetadata, MilestoneInput};
 use crate::{EscrowContract, EscrowContractClient};
 use soroban_sdk::{testutils::Address as _, token, Address, BytesN, Env, String, Vec};
 
@@ -95,6 +96,15 @@ fn milestones(env: &Env, items: &[(&str, i128)]) -> Vec<MilestoneInput> {
         });
     }
     v
+}
+
+/// Omits escrow metadata entirely, for tests that don't care about it.
+fn no_metadata(env: &Env) -> EscrowMetadata {
+    EscrowMetadata {
+        title: String::from_str(env, ""),
+        metadata_uri: String::from_str(env, ""),
+        metadata_hash: BytesN::from_array(env, &[0u8; 32]),
+    }
 }
 
 /// A placeholder evidence hash for tests that don't care what it is.

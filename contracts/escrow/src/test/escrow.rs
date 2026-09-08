@@ -15,6 +15,7 @@ fn test_full_escrow_lifecycle() {
             &[("Design mockups", 100i128), ("Implementation", 300i128)],
         ),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     let escrow = s.contract.get_escrow(&escrow_id);
@@ -64,6 +65,7 @@ fn test_cancel_before_funding() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.cancel_escrow(&escrow_id);
@@ -82,6 +84,7 @@ fn test_cannot_fund_twice() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -99,6 +102,7 @@ fn test_cannot_cancel_after_funding() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -116,6 +120,7 @@ fn test_no_milestones_rejected() {
         &s.token,
         &milestones(&s.env, &[]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -130,6 +135,7 @@ fn test_zero_review_period_rejected() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &0,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -144,6 +150,7 @@ fn test_client_cannot_also_be_arbitrator() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -158,6 +165,7 @@ fn test_provider_cannot_also_be_arbitrator() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -172,5 +180,6 @@ fn test_client_cannot_also_be_provider() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }

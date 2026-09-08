@@ -33,6 +33,9 @@ pub enum Error {
     ReviewPeriodNotElapsed = 19,
     /// `mutual_cancel_escrow` called while a milestone is still `Disputed`.
     UnresolvedDisputeExists = 20,
-    /// An evidence or metadata URI was empty or exceeded `MAX_URI_LEN`.
+    /// An evidence or metadata URI was empty (evidence only) or exceeded
+    /// `MAX_URI_LEN`.
     InvalidUri = 21,
+    /// An escrow's `title` exceeded `MAX_TITLE_LEN`.
+    InvalidTitle = 22,
 }

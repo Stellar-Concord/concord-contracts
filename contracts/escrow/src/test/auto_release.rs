@@ -17,6 +17,7 @@ fn setup_submitted_milestone(s: &TestSetup) -> u64 {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(s, escrow_id, 0);
@@ -67,6 +68,7 @@ fn test_reject_auto_release_on_pending_milestone() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     // Never submitted -- there's no `submitted_at` for the review period to
@@ -138,6 +140,7 @@ fn test_auto_release_leaves_other_milestones_unaffected() {
             &[("Milestone A", 100i128), ("Milestone B", 200i128)],
         ),
         &REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);

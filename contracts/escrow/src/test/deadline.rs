@@ -28,6 +28,7 @@ fn test_reject_deadline_in_the_past() {
         &s.token,
         &milestone_with_deadline(&s.env, 500),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -55,6 +56,7 @@ fn test_deadlines_need_not_be_increasing_across_milestones() {
         &s.token,
         &inputs,
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     let escrow = s.contract.get_escrow(&escrow_id);
@@ -74,6 +76,7 @@ fn test_reject_deadline_equal_to_now() {
         &s.token,
         &milestone_with_deadline(&s.env, 1_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 }
 
@@ -88,6 +91,7 @@ fn test_submit_exactly_at_deadline_succeeds() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -113,6 +117,7 @@ fn test_reject_submission_after_deadline() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -131,6 +136,7 @@ fn test_expire_after_deadline_succeeds() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -156,6 +162,7 @@ fn test_reject_expiry_before_deadline_reached() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -177,6 +184,7 @@ fn test_reject_expiring_submitted_milestone() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -197,6 +205,7 @@ fn test_reject_expiring_released_milestone() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -218,6 +227,7 @@ fn test_reject_expiring_disputed_milestone() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -243,6 +253,7 @@ fn test_reject_expiring_resolved_milestone() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -269,6 +280,7 @@ fn test_dispute_can_be_raised_on_expired_milestone() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -299,6 +311,7 @@ fn test_expire_milestone_emits_event() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -321,6 +334,7 @@ fn test_expire_milestone_is_permissionless() {
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);

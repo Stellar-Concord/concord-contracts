@@ -11,6 +11,10 @@ pub struct EscrowCreated {
     pub arbitrator: Address,
     pub token: Address,
     pub milestones: Vec<Milestone>,
+    pub created_at: u64,
+    pub title: String,
+    pub metadata_uri: String,
+    pub metadata_hash: BytesN<32>,
 }
 
 #[contractevent]

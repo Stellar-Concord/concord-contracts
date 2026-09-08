@@ -10,6 +10,7 @@ fn setup_single_disputed_milestone(s: &TestSetup, amount: i128) -> u64 {
         &s.token,
         &milestones(&s.env, &[("Only milestone", amount)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
@@ -86,6 +87,7 @@ fn test_dispute_leaves_other_milestones_unaffected() {
             &[("Milestone A", 100i128), ("Milestone B", 200i128)],
         ),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -119,6 +121,7 @@ fn test_dispute_by_non_party_rejected() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -141,6 +144,7 @@ fn test_cannot_dispute_released_milestone() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -165,6 +169,7 @@ fn test_cannot_resolve_undisputed_milestone() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
 

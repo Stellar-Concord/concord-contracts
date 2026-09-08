@@ -14,6 +14,7 @@ fn setup_funded_escrow(s: &super::TestSetup) -> u64 {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     escrow_id

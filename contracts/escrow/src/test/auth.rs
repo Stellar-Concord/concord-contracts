@@ -13,6 +13,7 @@ use soroban_sdk::{IntoVal, String};
 fn test_initialize_escrow_requires_client_signature() {
     let s = setup();
     let milestone_input = milestones(&s.env, &[("Only milestone", 50i128)]);
+    let metadata = super::no_metadata(&s.env);
 
     // Only the provider's signature is mocked; the contract requires the
     // client's.
@@ -29,6 +30,7 @@ fn test_initialize_escrow_requires_client_signature() {
                     &s.token,
                     &milestone_input,
                     DEFAULT_REVIEW_PERIOD,
+                    &metadata,
                 )
                     .into_val(&s.env),
                 sub_invokes: &[],
@@ -41,6 +43,7 @@ fn test_initialize_escrow_requires_client_signature() {
             &s.token,
             &milestone_input,
             &DEFAULT_REVIEW_PERIOD,
+            &metadata,
         );
 }
 
@@ -55,6 +58,7 @@ fn test_fund_escrow_requires_client_signature() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
 
     s.contract
@@ -81,6 +85,7 @@ fn test_submit_milestone_requires_provider_signature() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     let evidence_uri = String::from_str(&s.env, "ipfs://evidence");
@@ -111,6 +116,7 @@ fn test_approve_milestone_requires_client_signature() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     super::submit(&s, escrow_id, 0);
@@ -141,6 +147,7 @@ fn test_raise_dispute_requires_raised_by_to_actually_sign() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     let reason = String::from_str(&s.env, "Spoofed dispute");
@@ -171,6 +178,7 @@ fn test_resolve_dispute_requires_arbitrator_signature() {
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
         &DEFAULT_REVIEW_PERIOD,
+        &super::no_metadata(&s.env),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
