@@ -31,4 +31,6 @@ pub enum Error {
     /// `auto_release_milestone` called before `submitted_at + review_period`
     /// has elapsed.
     ReviewPeriodNotElapsed = 19,
+    /// `mutual_cancel_escrow` called while a milestone is still `Disputed`.
+    UnresolvedDisputeExists = 20,
 }

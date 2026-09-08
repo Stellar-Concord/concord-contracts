@@ -1,7 +1,7 @@
 //! Escrow lifecycle: creation, funding, and cancellation.
 
 use crate::errors::Error;
-use crate::events::{EscrowCancelled, EscrowCreated, EscrowFunded};
+use crate::events::{EscrowCancelled, EscrowCreated, EscrowFunded, EscrowMutuallyCancelled};
 use crate::state;
 use crate::types::{Escrow, EscrowStatus, Milestone, MilestoneInput, MilestoneStatus};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
@@ -130,6 +130,54 @@ impl EscrowContract {
         state::save_escrow(&env, &escrow);
 
         EscrowCancelled { escrow_id }.publish(&env);
+    }
+
+    /// Cancels a funded escrow, refunding whatever hasn't already been
+    /// released or resolved back to the client. Requires both the client's
+    /// and the provider's authorization in the same call -- this is how
+    /// they mutually agree to unwind an escrow after funding, since neither
+    /// can unilaterally cancel once funds are locked (that's what
+    /// `cancel_escrow`, above, is restricted to the pre-funding state for).
+    ///
+    /// Blocked while any milestone is `Disputed`: that milestone already
+    /// has a resolution path through the arbitrator, and letting a mutual
+    /// cancellation route around it would let either party walk away from
+    /// an arbitration they're already in rather than see it through.
+    pub fn mutual_cancel_escrow(env: Env, escrow_id: u64) {
+        let mut escrow = state::load_escrow(&env, escrow_id);
+        if escrow.status != EscrowStatus::Funded && escrow.status != EscrowStatus::InProgress {
+            panic_with_error!(&env, Error::InvalidEscrowStatus);
+        }
+        for m in escrow.milestones.iter() {
+            if m.status == MilestoneStatus::Disputed {
+                panic_with_error!(&env, Error::UnresolvedDisputeExists);
+            }
+        }
+
+        escrow.client.require_auth();
+        escrow.provider.require_auth();
+
+        let refund_amount = state::unreleased_amount(&env, &escrow.milestones);
+
+        // Update state before the external token call, same as every other
+        // path that moves money: a caller-supplied token contract that
+        // calls back in during `transfer` sees this escrow already
+        // `Cancelled`, not still `Funded`/`InProgress`.
+        escrow.status = EscrowStatus::Cancelled;
+        state::save_escrow(&env, &escrow);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        token_client.transfer(
+            &env.current_contract_address(),
+            &escrow.client,
+            &refund_amount,
+        );
+
+        EscrowMutuallyCancelled {
+            escrow_id,
+            refund_amount,
+        }
+        .publish(&env);
     }
 
     /// Returns the current state of an escrow.

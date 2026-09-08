@@ -80,6 +80,23 @@ pub(crate) fn all_milestones_settled(milestones: &Vec<Milestone>) -> bool {
         .all(|m| m.status == MilestoneStatus::Released || m.status == MilestoneStatus::Resolved)
 }
 
+/// Sum of every milestone that hasn't already been paid out one way or
+/// another -- i.e. everything except `Released` and `Resolved`. This is
+/// what `mutual_cancel_escrow` refunds to the client: money already sent to
+/// the provider (or split by a dispute resolution) isn't clawed back.
+pub(crate) fn unreleased_amount(env: &Env, milestones: &Vec<Milestone>) -> i128 {
+    let mut total: i128 = 0;
+    for m in milestones.iter() {
+        if m.status != MilestoneStatus::Released && m.status != MilestoneStatus::Resolved {
+            total = match total.checked_add(m.amount) {
+                Some(t) => t,
+                None => panic_with_error!(env, Error::AmountOverflow),
+            };
+        }
+    }
+    total
+}
+
 pub(crate) fn apply_bps(env: &Env, amount: i128, bps: u32) -> i128 {
     let scaled = match amount.checked_mul(bps as i128) {
         Some(v) => v,

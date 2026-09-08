@@ -8,6 +8,7 @@ mod dispute;
 mod escrow;
 mod events;
 mod milestone;
+mod mutual_cancel;
 mod property;
 
 use crate::types::MilestoneInput;

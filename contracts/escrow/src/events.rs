@@ -68,6 +68,17 @@ pub struct EscrowCancelled {
     pub escrow_id: u64,
 }
 
+/// Emitted by `mutual_cancel_escrow`. Distinct from `EscrowCancelled`
+/// (the pre-funding, client-only cancellation, which moves no money) since
+/// this one always refunds `refund_amount` back to the client.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EscrowMutuallyCancelled {
+    #[topic]
+    pub escrow_id: u64,
+    pub refund_amount: i128,
+}
+
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EscrowCompleted {
