@@ -4,7 +4,7 @@
 //! scope authorization to a single, specific, wrong address per call, so
 //! they fail unless the real signer check is what's rejecting them.
 
-use super::{milestones, setup};
+use super::{milestones, setup, DEFAULT_REVIEW_PERIOD};
 use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
 use soroban_sdk::{IntoVal, String};
 
@@ -28,6 +28,7 @@ fn test_initialize_escrow_requires_client_signature() {
                     &s.arbitrator,
                     &s.token,
                     &milestone_input,
+                    DEFAULT_REVIEW_PERIOD,
                 )
                     .into_val(&s.env),
                 sub_invokes: &[],
@@ -39,6 +40,7 @@ fn test_initialize_escrow_requires_client_signature() {
             &s.arbitrator,
             &s.token,
             &milestone_input,
+            &DEFAULT_REVIEW_PERIOD,
         );
 }
 
@@ -52,6 +54,7 @@ fn test_fund_escrow_requires_client_signature() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 
     s.contract
@@ -77,6 +80,7 @@ fn test_submit_milestone_requires_provider_signature() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -104,6 +108,7 @@ fn test_approve_milestone_requires_client_signature() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -133,6 +138,7 @@ fn test_raise_dispute_requires_raised_by_to_actually_sign() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     let reason = String::from_str(&s.env, "Spoofed dispute");
@@ -162,6 +168,7 @@ fn test_resolve_dispute_requires_arbitrator_signature() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(

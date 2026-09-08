@@ -1,4 +1,4 @@
-use super::{milestones, setup};
+use super::{milestones, setup, DEFAULT_REVIEW_PERIOD};
 use soroban_sdk::testutils::Events;
 
 #[test]
@@ -10,6 +10,7 @@ fn test_events_are_published_on_state_transitions() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     assert_eq!(s.env.events().all().events().len(), 1);
 

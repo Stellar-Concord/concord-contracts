@@ -92,6 +92,7 @@ proptest! {
                 amount: *amount,
                 status: MilestoneStatus::Pending,
                 deadline: 0,
+                submitted_at: 0,
             });
         }
 
@@ -121,6 +122,7 @@ fn total_amount_overflow_is_caught_not_wrapped() {
             amount: i128::MAX,
             status: MilestoneStatus::Pending,
             deadline: 0,
+            submitted_at: 0,
         });
     }
     state::total_amount(&env, &milestones);

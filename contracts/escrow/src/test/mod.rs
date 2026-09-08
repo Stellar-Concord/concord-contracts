@@ -2,6 +2,7 @@
 //! `escrow.rs` / `milestone.rs` / `dispute.rs`.
 
 mod auth;
+mod auto_release;
 mod deadline;
 mod dispute;
 mod escrow;
@@ -72,6 +73,11 @@ fn setup() -> TestSetup {
 fn far_future_deadline(env: &Env) -> u64 {
     env.ledger().timestamp() + 1_000_000
 }
+
+/// A review period long enough that it's never the thing under test, for
+/// cases that need *a* valid review period but aren't testing auto-release
+/// timing itself.
+const DEFAULT_REVIEW_PERIOD: u64 = 1_000_000;
 
 /// Builds milestone inputs from (description, amount) pairs, all sharing
 /// `far_future_deadline`. Most tests don't care about deadlines -- this

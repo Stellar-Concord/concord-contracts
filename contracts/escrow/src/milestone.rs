@@ -1,7 +1,9 @@
 //! Milestone submission and approval.
 
 use crate::errors::Error;
-use crate::events::{EscrowCompleted, MilestoneApproved, MilestoneExpired, MilestoneSubmitted};
+use crate::events::{
+    EscrowCompleted, MilestoneApproved, MilestoneAutoReleased, MilestoneExpired, MilestoneSubmitted,
+};
 use crate::state;
 use crate::types::{EscrowStatus, MilestoneStatus};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
@@ -32,6 +34,7 @@ impl EscrowContract {
             panic_with_error!(&env, Error::MilestoneDeadlinePassed);
         }
         milestone.status = MilestoneStatus::Submitted;
+        milestone.submitted_at = env.ledger().timestamp();
         escrow.milestones.set(milestone_id, milestone);
 
         if escrow.status == EscrowStatus::Funded {
@@ -116,6 +119,68 @@ impl EscrowContract {
         token_client.transfer(&env.current_contract_address(), &escrow.provider, &amount);
 
         MilestoneApproved {
+            escrow_id,
+            milestone_id,
+            amount,
+        }
+        .publish(&env);
+        if completed {
+            EscrowCompleted { escrow_id }.publish(&env);
+        }
+    }
+
+    /// Pays out a `Submitted` milestone to the provider once the escrow's
+    /// `review_period` has elapsed since submission without the client
+    /// approving it (or raising a dispute). Same effect as
+    /// `approve_milestone` -- funds move, milestone ends up `Released` --
+    /// just triggered by a timeout instead of the client's signature.
+    ///
+    /// Deliberately permissionless, for the same reason as
+    /// `expire_milestone`: the recipient and amount both come from stored
+    /// escrow state, never from the caller, so there's nothing a caller can
+    /// redirect by calling this. All they can do is trigger, at the
+    /// earliest once the client's own agreed-to review window has passed,
+    /// the same payout the client could have triggered immediately by
+    /// approving. Anyone -- a keeper, the platform's backend, the provider
+    /// themselves -- can call it once eligible; a client who wants to
+    /// actually review has that entire window to call `approve_milestone`
+    /// or `raise_dispute` first.
+    pub fn auto_release_milestone(env: Env, escrow_id: u64, milestone_id: u32) {
+        let mut escrow = state::load_escrow(&env, escrow_id);
+        if escrow.status != EscrowStatus::InProgress {
+            panic_with_error!(&env, Error::InvalidEscrowStatus);
+        }
+
+        let mut milestone = state::get_milestone(&env, &escrow, milestone_id);
+        if milestone.status != MilestoneStatus::Submitted {
+            panic_with_error!(&env, Error::InvalidMilestoneStatus);
+        }
+        // Saturating, not checked: unlike the money math in `state.rs`, an
+        // overflow here isn't an error condition to reject -- it just means
+        // the review period is absurdly long, so the correct eligible time
+        // is "unreachable", which `u64::MAX` already represents.
+        let eligible_at = milestone.submitted_at.saturating_add(escrow.review_period);
+        if env.ledger().timestamp() <= eligible_at {
+            panic_with_error!(&env, Error::ReviewPeriodNotElapsed);
+        }
+
+        // Same checks-effects-interactions ordering as `approve_milestone`:
+        // state is `Released` before the external token call, so a
+        // reentrant call sees it already settled instead of paying twice.
+        let amount = milestone.amount;
+        milestone.status = MilestoneStatus::Released;
+        escrow.milestones.set(milestone_id, milestone);
+
+        let completed = state::all_milestones_settled(&escrow.milestones);
+        if completed {
+            escrow.status = EscrowStatus::Completed;
+        }
+        state::save_escrow(&env, &escrow);
+
+        let token_client = token::Client::new(&env, &escrow.token);
+        token_client.transfer(&env.current_contract_address(), &escrow.provider, &amount);
+
+        MilestoneAutoReleased {
             escrow_id,
             milestone_id,
             amount,

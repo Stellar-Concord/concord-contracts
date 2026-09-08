@@ -1,4 +1,4 @@
-use super::{milestones, setup, TestSetup};
+use super::{milestones, setup, TestSetup, DEFAULT_REVIEW_PERIOD};
 use crate::types::{EscrowStatus, MilestoneStatus, Resolution};
 use soroban_sdk::String;
 
@@ -9,6 +9,7 @@ fn setup_single_disputed_milestone(s: &TestSetup, amount: i128) -> u64 {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", amount)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
@@ -84,6 +85,7 @@ fn test_dispute_leaves_other_milestones_unaffected() {
             &s.env,
             &[("Milestone A", 100i128), ("Milestone B", 200i128)],
         ),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -116,6 +118,7 @@ fn test_dispute_by_non_party_rejected() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -137,6 +140,7 @@ fn test_cannot_dispute_released_milestone() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -160,6 +164,7 @@ fn test_cannot_resolve_undisputed_milestone() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 100i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 

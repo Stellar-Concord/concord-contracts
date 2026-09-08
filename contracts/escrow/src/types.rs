@@ -70,6 +70,11 @@ pub struct Milestone {
     pub amount: i128,
     pub status: MilestoneStatus,
     pub deadline: u64,
+    /// Ledger timestamp `submit_milestone` was called at. `0` until then --
+    /// a real submission at the Unix epoch is not a case any deployed
+    /// network needs to represent, so it doubles as "not yet submitted"
+    /// without needing an `Option`.
+    pub submitted_at: u64,
 }
 
 #[contracttype]
@@ -82,6 +87,12 @@ pub struct Escrow {
     pub token: Address,
     pub milestones: Vec<Milestone>,
     pub status: EscrowStatus,
+    /// Seconds the client has, after a milestone is submitted, before
+    /// `auto_release_milestone` becomes callable on it. Set once at
+    /// creation and applied to every milestone in this escrow -- see
+    /// `initialize_escrow`'s docs for why this lives here rather than as a
+    /// contract-wide constant or a per-milestone field.
+    pub review_period: u64,
 }
 
 #[contracttype]

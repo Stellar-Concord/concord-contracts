@@ -26,4 +26,9 @@ pub enum Error {
     MilestoneDeadlinePassed = 16,
     /// `expire_milestone` called before the deadline has passed.
     DeadlineNotReached = 17,
+    /// An escrow's `review_period` was zero at creation.
+    InvalidReviewPeriod = 18,
+    /// `auto_release_milestone` called before `submitted_at + review_period`
+    /// has elapsed.
+    ReviewPeriodNotElapsed = 19,
 }

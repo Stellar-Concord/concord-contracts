@@ -1,7 +1,7 @@
 //! Deadline enforcement (`initialize_escrow`, `submit_milestone`) and
 //! expiration (`expire_milestone`).
 
-use super::setup;
+use super::{setup, DEFAULT_REVIEW_PERIOD};
 use crate::types::{MilestoneInput, MilestoneStatus, Resolution};
 use soroban_sdk::testutils::{Events, Ledger};
 use soroban_sdk::{Env, String, Vec};
@@ -27,6 +27,7 @@ fn test_reject_deadline_in_the_past() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 500),
+        &DEFAULT_REVIEW_PERIOD,
     );
 }
 
@@ -47,9 +48,14 @@ fn test_deadlines_need_not_be_increasing_across_milestones() {
         deadline: 2_000, // earlier than the first milestone's deadline
     });
 
-    let escrow_id =
-        s.contract
-            .initialize_escrow(&s.client, &s.provider, &s.arbitrator, &s.token, &inputs);
+    let escrow_id = s.contract.initialize_escrow(
+        &s.client,
+        &s.provider,
+        &s.arbitrator,
+        &s.token,
+        &inputs,
+        &DEFAULT_REVIEW_PERIOD,
+    );
 
     let escrow = s.contract.get_escrow(&escrow_id);
     assert_eq!(escrow.milestones.get(0).unwrap().deadline, 3_000);
@@ -67,6 +73,7 @@ fn test_reject_deadline_equal_to_now() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 1_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
 }
 
@@ -80,6 +87,7 @@ fn test_submit_exactly_at_deadline_succeeds() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -104,6 +112,7 @@ fn test_reject_submission_after_deadline() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -121,6 +130,7 @@ fn test_expire_after_deadline_succeeds() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -145,6 +155,7 @@ fn test_reject_expiry_before_deadline_reached() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -165,6 +176,7 @@ fn test_reject_expiring_submitted_milestone() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -184,6 +196,7 @@ fn test_reject_expiring_released_milestone() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -204,6 +217,7 @@ fn test_reject_expiring_disputed_milestone() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -228,6 +242,7 @@ fn test_reject_expiring_resolved_milestone() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -253,6 +268,7 @@ fn test_dispute_can_be_raised_on_expired_milestone() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -282,6 +298,7 @@ fn test_expire_milestone_emits_event() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);
@@ -303,6 +320,7 @@ fn test_expire_milestone_is_permissionless() {
         &s.arbitrator,
         &s.token,
         &milestone_with_deadline(&s.env, 2_000),
+        &DEFAULT_REVIEW_PERIOD,
     );
     s.contract.fund_escrow(&escrow_id);
     s.env.ledger().set_timestamp(2_001);

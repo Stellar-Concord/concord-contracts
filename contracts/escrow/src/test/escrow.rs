@@ -1,4 +1,4 @@
-use super::{milestones, setup};
+use super::{milestones, setup, DEFAULT_REVIEW_PERIOD};
 use crate::types::{EscrowStatus, MilestoneStatus};
 
 #[test]
@@ -14,6 +14,7 @@ fn test_full_escrow_lifecycle() {
             &s.env,
             &[("Design mockups", 100i128), ("Implementation", 300i128)],
         ),
+        &DEFAULT_REVIEW_PERIOD,
     );
 
     let escrow = s.contract.get_escrow(&escrow_id);
@@ -62,6 +63,7 @@ fn test_cancel_before_funding() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 
     s.contract.cancel_escrow(&escrow_id);
@@ -79,6 +81,7 @@ fn test_cannot_fund_twice() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -95,6 +98,7 @@ fn test_cannot_cancel_after_funding() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -111,6 +115,21 @@ fn test_no_milestones_rejected() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[]),
+        &DEFAULT_REVIEW_PERIOD,
+    );
+}
+
+#[test]
+#[should_panic]
+fn test_zero_review_period_rejected() {
+    let s = setup();
+    s.contract.initialize_escrow(
+        &s.client,
+        &s.provider,
+        &s.arbitrator,
+        &s.token,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &0,
     );
 }
 
@@ -124,6 +143,7 @@ fn test_client_cannot_also_be_arbitrator() {
         &s.client,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 }
 
@@ -137,6 +157,7 @@ fn test_provider_cannot_also_be_arbitrator() {
         &s.provider,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 }
 
@@ -150,5 +171,6 @@ fn test_client_cannot_also_be_provider() {
         &s.arbitrator,
         &s.token,
         &milestones(&s.env, &[("Only milestone", 50i128)]),
+        &DEFAULT_REVIEW_PERIOD,
     );
 }

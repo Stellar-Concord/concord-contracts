@@ -11,6 +11,20 @@ use soroban_sdk::{contractimpl, panic_with_error, token, Address, Env, Vec};
 impl EscrowContract {
     /// Creates a new escrow with the given milestones. Authorized by the client.
     /// Returns the new escrow's id.
+    ///
+    /// `review_period` (seconds) is how long the client has, after the
+    /// provider submits a milestone, before `auto_release_milestone`
+    /// becomes callable on it. It's set once here and applies to every
+    /// milestone in this escrow, rather than either a contract-wide
+    /// constant or a per-milestone value: a global constant would force
+    /// every client relationship into the same review window regardless of
+    /// how much either party trusts the other, while a per-milestone value
+    /// adds a field nobody asked for -- a client who wants different review
+    /// windows for different kinds of work can already get that by using
+    /// separate escrows. Must be strictly positive: a zero-second review
+    /// period would let a milestone become auto-releasable in the same
+    /// instant it's submitted, defeating the point of giving the client a
+    /// review window at all.
     pub fn initialize_escrow(
         env: Env,
         client: Address,
@@ -18,6 +32,7 @@ impl EscrowContract {
         arbitrator: Address,
         token: Address,
         milestones: Vec<MilestoneInput>,
+        review_period: u64,
     ) -> u64 {
         client.require_auth();
 
@@ -27,6 +42,9 @@ impl EscrowContract {
 
         if milestones.is_empty() {
             panic_with_error!(&env, Error::NoMilestones);
+        }
+        if review_period == 0 {
+            panic_with_error!(&env, Error::InvalidReviewPeriod);
         }
 
         let now = env.ledger().timestamp();
@@ -44,6 +62,7 @@ impl EscrowContract {
                 amount: input.amount,
                 status: MilestoneStatus::Pending,
                 deadline: input.deadline,
+                submitted_at: 0,
             });
         }
 
@@ -56,6 +75,7 @@ impl EscrowContract {
             token,
             milestones: built_milestones,
             status: EscrowStatus::Created,
+            review_period,
         };
         state::save_escrow(&env, &escrow);
 
