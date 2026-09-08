@@ -31,6 +31,32 @@ fn test_reject_deadline_in_the_past() {
 }
 
 #[test]
+fn test_deadlines_need_not_be_increasing_across_milestones() {
+    let s = setup();
+    s.env.ledger().set_timestamp(1_000);
+
+    let mut inputs = Vec::new(&s.env);
+    inputs.push_back(MilestoneInput {
+        description: String::from_str(&s.env, "First milestone"),
+        amount: 50,
+        deadline: 3_000,
+    });
+    inputs.push_back(MilestoneInput {
+        description: String::from_str(&s.env, "Second milestone"),
+        amount: 60,
+        deadline: 2_000, // earlier than the first milestone's deadline
+    });
+
+    let escrow_id =
+        s.contract
+            .initialize_escrow(&s.client, &s.provider, &s.arbitrator, &s.token, &inputs);
+
+    let escrow = s.contract.get_escrow(&escrow_id);
+    assert_eq!(escrow.milestones.get(0).unwrap().deadline, 3_000);
+    assert_eq!(escrow.milestones.get(1).unwrap().deadline, 2_000);
+}
+
+#[test]
 #[should_panic]
 fn test_reject_deadline_equal_to_now() {
     let s = setup();

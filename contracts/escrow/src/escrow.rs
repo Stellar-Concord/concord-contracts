@@ -30,7 +30,7 @@ impl EscrowContract {
         }
 
         let now = env.ledger().timestamp();
-        let mut milestones_built = Vec::new(&env);
+        let mut built_milestones = Vec::new(&env);
         for (i, input) in milestones.iter().enumerate() {
             if input.amount <= 0 {
                 panic_with_error!(&env, Error::InvalidMilestoneAmount);
@@ -38,7 +38,7 @@ impl EscrowContract {
             if input.deadline <= now {
                 panic_with_error!(&env, Error::InvalidDeadline);
             }
-            milestones_built.push_back(Milestone {
+            built_milestones.push_back(Milestone {
                 id: i as u32,
                 description: input.description,
                 amount: input.amount,
@@ -46,7 +46,6 @@ impl EscrowContract {
                 deadline: input.deadline,
             });
         }
-        let milestones = milestones_built;
 
         let escrow_id = state::next_escrow_id(&env);
         let escrow = Escrow {
@@ -55,7 +54,7 @@ impl EscrowContract {
             provider,
             arbitrator,
             token,
-            milestones,
+            milestones: built_milestones,
             status: EscrowStatus::Created,
         };
         state::save_escrow(&env, &escrow);
