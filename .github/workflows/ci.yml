@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt -p concord-escrow -- --check
+
+      - name: Clippy
+        run: cargo clippy -p concord-escrow --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test -p concord-escrow
+
+      - name: Build wasm
+        # Mirrors what `stellar contract build` runs, without needing the
+        # Stellar CLI installed just to confirm the contract still compiles
+        # to wasm.
+        run: |
+          cargo rustc \
+            --manifest-path=contracts/escrow/Cargo.toml \
+            --crate-type=cdylib \
+            --target=wasm32v1-none \
+            --release
