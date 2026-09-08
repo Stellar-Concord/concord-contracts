@@ -3,9 +3,9 @@
 use crate::errors::Error;
 use crate::events::{EscrowCancelled, EscrowCreated, EscrowFunded};
 use crate::state;
-use crate::types::{Escrow, EscrowStatus, Milestone, MilestoneStatus};
+use crate::types::{Escrow, EscrowStatus, Milestone, MilestoneInput, MilestoneStatus};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
-use soroban_sdk::{contractimpl, panic_with_error, token, Address, Env, String, Vec};
+use soroban_sdk::{contractimpl, panic_with_error, token, Address, Env, Vec};
 
 #[contractimpl]
 impl EscrowContract {
@@ -17,8 +17,7 @@ impl EscrowContract {
         provider: Address,
         arbitrator: Address,
         token: Address,
-        milestone_descriptions: Vec<String>,
-        milestone_amounts: Vec<i128>,
+        milestones: Vec<MilestoneInput>,
     ) -> u64 {
         client.require_auth();
 
@@ -26,26 +25,28 @@ impl EscrowContract {
             panic_with_error!(&env, Error::RolesMustBeDistinct);
         }
 
-        if milestone_descriptions.is_empty() {
+        if milestones.is_empty() {
             panic_with_error!(&env, Error::NoMilestones);
         }
-        if milestone_descriptions.len() != milestone_amounts.len() {
-            panic_with_error!(&env, Error::MismatchedMilestoneInputs);
-        }
 
-        let mut milestones = Vec::new(&env);
-        for i in 0..milestone_descriptions.len() {
-            let amount = milestone_amounts.get(i).unwrap();
-            if amount <= 0 {
+        let now = env.ledger().timestamp();
+        let mut milestones_built = Vec::new(&env);
+        for (i, input) in milestones.iter().enumerate() {
+            if input.amount <= 0 {
                 panic_with_error!(&env, Error::InvalidMilestoneAmount);
             }
-            milestones.push_back(Milestone {
-                id: i,
-                description: milestone_descriptions.get(i).unwrap(),
-                amount,
+            if input.deadline <= now {
+                panic_with_error!(&env, Error::InvalidDeadline);
+            }
+            milestones_built.push_back(Milestone {
+                id: i as u32,
+                description: input.description,
+                amount: input.amount,
                 status: MilestoneStatus::Pending,
+                deadline: input.deadline,
             });
         }
+        let milestones = milestones_built;
 
         let escrow_id = state::next_escrow_id(&env);
         let escrow = Escrow {

@@ -1,19 +1,15 @@
-use super::setup;
-use soroban_sdk::{vec, String};
+use super::{milestones, setup};
 
 #[test]
 #[should_panic]
 fn test_cannot_approve_without_submit() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -24,15 +20,12 @@ fn test_cannot_approve_without_submit() {
 #[should_panic]
 fn test_milestone_not_found() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract.fund_escrow(&escrow_id);

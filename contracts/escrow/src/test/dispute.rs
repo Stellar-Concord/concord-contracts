@@ -1,17 +1,14 @@
-use super::{setup, TestSetup};
+use super::{milestones, setup, TestSetup};
 use crate::types::{EscrowStatus, MilestoneStatus, Resolution};
-use soroban_sdk::{vec, String};
+use soroban_sdk::String;
 
 fn setup_single_disputed_milestone(s: &TestSetup, amount: i128) -> u64 {
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, amount];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", amount)]),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(
@@ -78,19 +75,15 @@ fn test_dispute_split() {
 #[test]
 fn test_dispute_leaves_other_milestones_unaffected() {
     let s = setup();
-    let descriptions = vec![
-        &s.env,
-        String::from_str(&s.env, "Milestone A"),
-        String::from_str(&s.env, "Milestone B"),
-    ];
-    let amounts = vec![&s.env, 100i128, 200i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(
+            &s.env,
+            &[("Milestone A", 100i128), ("Milestone B", 200i128)],
+        ),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -117,15 +110,12 @@ fn test_dispute_leaves_other_milestones_unaffected() {
 #[should_panic]
 fn test_dispute_by_non_party_rejected() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 100i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 100i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -141,15 +131,12 @@ fn test_dispute_by_non_party_rejected() {
 #[should_panic]
 fn test_cannot_dispute_released_milestone() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 100i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 100i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -167,15 +154,12 @@ fn test_cannot_dispute_released_milestone() {
 #[should_panic]
 fn test_cannot_resolve_undisputed_milestone() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 100i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 100i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
 

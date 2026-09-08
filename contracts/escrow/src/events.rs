@@ -29,6 +29,16 @@ pub struct MilestoneSubmitted {
     pub milestone_id: u32,
 }
 
+/// Emitted by `expire_milestone` once a `Pending` milestone's deadline has
+/// passed. No funds move -- this only marks the fact on-chain.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneExpired {
+    #[topic]
+    pub escrow_id: u64,
+    pub milestone_id: u32,
+}
+
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MilestoneApproved {

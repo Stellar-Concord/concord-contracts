@@ -91,6 +91,7 @@ proptest! {
                 description: String::from_str(&env, "milestone"),
                 amount: *amount,
                 status: MilestoneStatus::Pending,
+                deadline: 0,
             });
         }
 
@@ -119,6 +120,7 @@ fn total_amount_overflow_is_caught_not_wrapped() {
             description: String::from_str(&env, "milestone"),
             amount: i128::MAX,
             status: MilestoneStatus::Pending,
+            deadline: 0,
         });
     }
     state::total_amount(&env, &milestones);

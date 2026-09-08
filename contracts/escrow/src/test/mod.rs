@@ -2,14 +2,16 @@
 //! `escrow.rs` / `milestone.rs` / `dispute.rs`.
 
 mod auth;
+mod deadline;
 mod dispute;
 mod escrow;
 mod events;
 mod milestone;
 mod property;
 
+use crate::types::MilestoneInput;
 use crate::{EscrowContract, EscrowContractClient};
-use soroban_sdk::{testutils::Address as _, token, Address, Env};
+use soroban_sdk::{testutils::Address as _, token, Address, Env, String, Vec};
 
 fn create_token<'a>(
     env: &Env,
@@ -62,4 +64,27 @@ fn setup() -> TestSetup {
         token_client,
         contract,
     }
+}
+
+/// A deadline far enough out that it's never the thing under test, for
+/// cases that need *a* valid deadline but aren't testing deadline logic
+/// itself.
+fn far_future_deadline(env: &Env) -> u64 {
+    env.ledger().timestamp() + 1_000_000
+}
+
+/// Builds milestone inputs from (description, amount) pairs, all sharing
+/// `far_future_deadline`. Most tests don't care about deadlines -- this
+/// keeps them from having to spell one out every time.
+fn milestones(env: &Env, items: &[(&str, i128)]) -> Vec<MilestoneInput> {
+    let deadline = far_future_deadline(env);
+    let mut v = Vec::new(env);
+    for (description, amount) in items {
+        v.push_back(MilestoneInput {
+            description: String::from_str(env, description),
+            amount: *amount,
+            deadline,
+        });
+    }
+    v
 }

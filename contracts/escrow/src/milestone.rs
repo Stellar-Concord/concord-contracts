@@ -1,7 +1,7 @@
 //! Milestone submission and approval.
 
 use crate::errors::Error;
-use crate::events::{EscrowCompleted, MilestoneApproved, MilestoneSubmitted};
+use crate::events::{EscrowCompleted, MilestoneApproved, MilestoneExpired, MilestoneSubmitted};
 use crate::state;
 use crate::types::{EscrowStatus, MilestoneStatus};
 use crate::{EscrowContract, EscrowContractArgs, EscrowContractClient};
@@ -10,6 +10,8 @@ use soroban_sdk::{contractimpl, panic_with_error, token, Env};
 #[contractimpl]
 impl EscrowContract {
     /// Provider marks a milestone as delivered. Authorized by the provider.
+    /// Rejected once that milestone's own deadline has passed -- see
+    /// `expire_milestone` for what happens to a late milestone instead.
     pub fn submit_milestone(env: Env, escrow_id: u64, milestone_id: u32) {
         let mut escrow = state::load_escrow(&env, escrow_id);
         if escrow.status != EscrowStatus::Funded && escrow.status != EscrowStatus::InProgress {
@@ -22,6 +24,13 @@ impl EscrowContract {
         if milestone.status != MilestoneStatus::Pending {
             panic_with_error!(&env, Error::InvalidMilestoneStatus);
         }
+        // Inclusive: submitting exactly at the deadline is still on time.
+        // `expire_milestone` uses the complementary strict `>` check, so
+        // there's no instant where both submission and expiry are valid,
+        // and none where neither is.
+        if env.ledger().timestamp() > milestone.deadline {
+            panic_with_error!(&env, Error::MilestoneDeadlinePassed);
+        }
         milestone.status = MilestoneStatus::Submitted;
         escrow.milestones.set(milestone_id, milestone);
 
@@ -31,6 +40,42 @@ impl EscrowContract {
         state::save_escrow(&env, &escrow);
 
         MilestoneSubmitted {
+            escrow_id,
+            milestone_id,
+        }
+        .publish(&env);
+    }
+
+    /// Marks a `Pending` milestone `Expired` once its deadline has passed.
+    /// Moves no funds -- it only records the fact on-chain, which then lets
+    /// the client raise a dispute to recover the locked amount through
+    /// arbitration (or, once mutual cancellation ships, agree with the
+    /// provider to just walk away).
+    ///
+    /// Deliberately permissionless (no `require_auth`): the only thing this
+    /// function can do is flip a status flag once an already-fixed,
+    /// already-public deadline has passed. There's no discretion to
+    /// exploit -- the caller can't make it fire early (the timestamp check
+    /// is absolute) and doesn't influence what it does. Restricting it to
+    /// one party would only add friction (someone has to remember to call
+    /// it); anyone -- a keeper, the platform's own backend, either party --
+    /// can advance it once eligible.
+    pub fn expire_milestone(env: Env, escrow_id: u64, milestone_id: u32) {
+        let mut escrow = state::load_escrow(&env, escrow_id);
+
+        let mut milestone = state::get_milestone(&env, &escrow, milestone_id);
+        if milestone.status != MilestoneStatus::Pending {
+            panic_with_error!(&env, Error::InvalidMilestoneStatus);
+        }
+        if env.ledger().timestamp() <= milestone.deadline {
+            panic_with_error!(&env, Error::DeadlineNotReached);
+        }
+
+        milestone.status = MilestoneStatus::Expired;
+        escrow.milestones.set(milestone_id, milestone);
+        state::save_escrow(&env, &escrow);
+
+        MilestoneExpired {
             escrow_id,
             milestone_id,
         }

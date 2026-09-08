@@ -1,18 +1,15 @@
-use super::setup;
-use soroban_sdk::{testutils::Events, vec, String};
+use super::{milestones, setup};
+use soroban_sdk::testutils::Events;
 
 #[test]
 fn test_events_are_published_on_state_transitions() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 100i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 100i128)]),
     );
     assert_eq!(s.env.events().all().events().len(), 1);
 

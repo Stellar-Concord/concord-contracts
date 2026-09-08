@@ -1,25 +1,19 @@
-use super::setup;
+use super::{milestones, setup};
 use crate::types::{EscrowStatus, MilestoneStatus};
-use soroban_sdk::{vec, String};
 
 #[test]
 fn test_full_escrow_lifecycle() {
     let s = setup();
-
-    let descriptions = vec![
-        &s.env,
-        String::from_str(&s.env, "Design mockups"),
-        String::from_str(&s.env, "Implementation"),
-    ];
-    let amounts = vec![&s.env, 100i128, 300i128];
 
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(
+            &s.env,
+            &[("Design mockups", 100i128), ("Implementation", 300i128)],
+        ),
     );
 
     let escrow = s.contract.get_escrow(&escrow_id);
@@ -62,15 +56,12 @@ fn test_full_escrow_lifecycle() {
 #[test]
 fn test_cancel_before_funding() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract.cancel_escrow(&escrow_id);
@@ -82,15 +73,12 @@ fn test_cancel_before_funding() {
 #[should_panic]
 fn test_cannot_fund_twice() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -101,15 +89,12 @@ fn test_cannot_fund_twice() {
 #[should_panic]
 fn test_cannot_cancel_after_funding() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract.fund_escrow(&escrow_id);
@@ -120,15 +105,12 @@ fn test_cannot_cancel_after_funding() {
 #[should_panic]
 fn test_no_milestones_rejected() {
     let s = setup();
-    let descriptions = vec![&s.env];
-    let amounts = vec![&s.env];
     s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[]),
     );
 }
 
@@ -136,15 +118,12 @@ fn test_no_milestones_rejected() {
 #[should_panic]
 fn test_client_cannot_also_be_arbitrator() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.client,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 }
 
@@ -152,15 +131,12 @@ fn test_client_cannot_also_be_arbitrator() {
 #[should_panic]
 fn test_provider_cannot_also_be_arbitrator() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.provider,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 }
 
@@ -168,14 +144,11 @@ fn test_provider_cannot_also_be_arbitrator() {
 #[should_panic]
 fn test_client_cannot_also_be_provider() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     s.contract.initialize_escrow(
         &s.client,
         &s.client,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 }

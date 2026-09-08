@@ -4,16 +4,15 @@
 //! scope authorization to a single, specific, wrong address per call, so
 //! they fail unless the real signer check is what's rejecting them.
 
-use super::setup;
+use super::{milestones, setup};
 use soroban_sdk::testutils::{MockAuth, MockAuthInvoke};
-use soroban_sdk::{vec, IntoVal, String};
+use soroban_sdk::{IntoVal, String};
 
 #[test]
 #[should_panic]
 fn test_initialize_escrow_requires_client_signature() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
+    let milestone_input = milestones(&s.env, &[("Only milestone", 50i128)]);
 
     // Only the provider's signature is mocked; the contract requires the
     // client's.
@@ -28,8 +27,7 @@ fn test_initialize_escrow_requires_client_signature() {
                     &s.provider,
                     &s.arbitrator,
                     &s.token,
-                    &descriptions,
-                    &amounts,
+                    &milestone_input,
                 )
                     .into_val(&s.env),
                 sub_invokes: &[],
@@ -40,8 +38,7 @@ fn test_initialize_escrow_requires_client_signature() {
             &s.provider,
             &s.arbitrator,
             &s.token,
-            &descriptions,
-            &amounts,
+            &milestone_input,
         );
 }
 
@@ -49,15 +46,12 @@ fn test_initialize_escrow_requires_client_signature() {
 #[should_panic]
 fn test_fund_escrow_requires_client_signature() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
 
     s.contract
@@ -77,15 +71,12 @@ fn test_fund_escrow_requires_client_signature() {
 #[should_panic]
 fn test_submit_milestone_requires_provider_signature() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
 
@@ -107,15 +98,12 @@ fn test_submit_milestone_requires_provider_signature() {
 #[should_panic]
 fn test_approve_milestone_requires_client_signature() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.submit_milestone(&escrow_id, &0);
@@ -139,15 +127,12 @@ fn test_approve_milestone_requires_client_signature() {
 #[should_panic]
 fn test_raise_dispute_requires_raised_by_to_actually_sign() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
     let reason = String::from_str(&s.env, "Spoofed dispute");
@@ -171,15 +156,12 @@ fn test_raise_dispute_requires_raised_by_to_actually_sign() {
 #[should_panic]
 fn test_resolve_dispute_requires_arbitrator_signature() {
     let s = setup();
-    let descriptions = vec![&s.env, String::from_str(&s.env, "Only milestone")];
-    let amounts = vec![&s.env, 50i128];
     let escrow_id = s.contract.initialize_escrow(
         &s.client,
         &s.provider,
         &s.arbitrator,
         &s.token,
-        &descriptions,
-        &amounts,
+        &milestones(&s.env, &[("Only milestone", 50i128)]),
     );
     s.contract.fund_escrow(&escrow_id);
     s.contract.raise_dispute(

@@ -32,6 +32,7 @@ impl EscrowContract {
         let mut milestone = state::get_milestone(&env, &escrow, milestone_id);
         if milestone.status != MilestoneStatus::Pending
             && milestone.status != MilestoneStatus::Submitted
+            && milestone.status != MilestoneStatus::Expired
         {
             panic_with_error!(&env, Error::InvalidMilestoneStatus);
         }
