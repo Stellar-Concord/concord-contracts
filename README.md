@@ -1,15 +1,19 @@
 # concord-escrow
 
+[![CI](https://github.com/Stellar-Concord/concord-contracts/actions/workflows/ci.yml/badge.svg)](https://github.com/Stellar-Concord/concord-contracts/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Stellar Soroban](https://img.shields.io/badge/stellar-soroban-7D00FF.svg)](https://developer.stellar.org/docs/build/smart-contracts/overview)
+
 A permissionless, milestone-based escrow contract for Stellar/Soroban. Any
-platform (marketplaces, freelance platforms, service marketplaces) can
-integrate escrow into its payment flow using this contract directly — funds
+platform — marketplaces, freelance platforms, service marketplaces — can
+integrate escrow into its payment flow using this contract directly: funds
 are held trustlessly on-chain, never by a custodian, and disputes are
 resolved through a defined on-chain arbitration flow rather than off-chain
 negotiation.
 
-Part of the Concord project, alongside [`concord-backend`](../concord-backend)
-(an event indexer + REST API) and [`concord-frontend`](../concord-frontend)
-(a reference UI). This repo is the source of truth: the backend and frontend
+Part of the **Concord** protocol, alongside [`concord-backend`](https://github.com/Stellar-Concord/concord-backend)
+(event indexer + REST API) and [`concord-frontend`](https://github.com/Stellar-Concord/concord-frontend)
+(reference UI). This repo is the source of truth — the backend and frontend
 both read the state this contract defines and emits.
 
 ## How it works
@@ -95,7 +99,7 @@ contracts/escrow/src/
 ├── escrow.rs     # initialize_escrow, fund_escrow, cancel_escrow, get_escrow
 ├── milestone.rs  # submit_milestone, approve_milestone
 ├── dispute.rs    # raise_dispute, resolve_dispute, get_dispute*
-├── state.rs      # storage access -- the only place that touches env.storage()
+├── state.rs      # storage access — the only place that touches env.storage()
 ├── types.rs      # Escrow, Milestone, Dispute, Resolution, status enums
 ├── events.rs     # #[contractevent] definitions
 ├── errors.rs     # contract error codes
@@ -150,3 +154,7 @@ stellar contract deploy \
   --wasm target/wasm-out/concord_escrow.wasm \
   --source <your-key-name> -n testnet --alias concord_escrow
 ```
+
+## License
+
+[MIT](./LICENSE)
